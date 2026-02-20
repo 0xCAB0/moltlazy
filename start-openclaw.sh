@@ -138,6 +138,9 @@ fi
 # - Gateway token auth
 # - Trusted proxies for sandbox networking
 # - Base URL override for legacy AI Gateway path
+#
+# IMPORTANT: This script MERGES with existing config to preserve user settings.
+# Only env-var-derived values are overwritten; user-added fields are kept.
 node << 'EOFPATCH'
 const fs = require('fs');
 
@@ -154,7 +157,8 @@ try {
 config.gateway = config.gateway || {};
 config.channels = config.channels || {};
 
-// Gateway configuration
+// Gateway configuration - merge with existing, only set required fields
+// Preserve user settings like custom auth config, controlUi settings, etc.
 config.gateway.port = 18789;
 config.gateway.mode = 'local';
 config.gateway.trustedProxies = ['10.1.0.0'];
@@ -204,7 +208,9 @@ if (process.env.CF_AI_GATEWAY_MODEL) {
 
         config.models = config.models || {};
         config.models.providers = config.models.providers || {};
+        // Merge with existing provider config if any
         config.models.providers[providerName] = {
+            ...config.models.providers[providerName],
             baseUrl: baseUrl,
             apiKey: apiKey,
             api: api,
@@ -220,31 +226,44 @@ if (process.env.CF_AI_GATEWAY_MODEL) {
 }
 
 // Telegram configuration
-// Overwrite entire channel object to drop stale keys from old R2 backups
-// that would fail OpenClaw's strict config validation (see #47)
+// Merge with existing config to preserve user-added fields (e.g., custom allowFrom lists)
+// Only overwrite fields that come from environment variables
 if (process.env.TELEGRAM_BOT_TOKEN) {
-    const dmPolicy = process.env.TELEGRAM_DM_POLICY || 'pairing';
+    const existing = config.channels.telegram || {};
+    const dmPolicy = process.env.TELEGRAM_DM_POLICY || existing.dmPolicy || 'pairing';
+
     config.channels.telegram = {
+        ...existing,  // Preserve user settings
         botToken: process.env.TELEGRAM_BOT_TOKEN,
         enabled: true,
         dmPolicy: dmPolicy,
     };
+
+    // Only override allowFrom if explicitly set via env var
     if (process.env.TELEGRAM_DM_ALLOW_FROM) {
         config.channels.telegram.allowFrom = process.env.TELEGRAM_DM_ALLOW_FROM.split(',');
-    } else if (dmPolicy === 'open') {
+    } else if (dmPolicy === 'open' && !existing.allowFrom) {
         config.channels.telegram.allowFrom = ['*'];
     }
 }
 
 // Discord configuration
-// Discord uses a nested dm object: dm.policy, dm.allowFrom (per DiscordDmConfig)
+// Merge with existing config to preserve user-added fields
 if (process.env.DISCORD_BOT_TOKEN) {
-    const dmPolicy = process.env.DISCORD_DM_POLICY || 'pairing';
-    const dm = { policy: dmPolicy };
-    if (dmPolicy === 'open') {
+    const existing = config.channels.discord || {};
+    const existingDm = existing.dm || {};
+    const dmPolicy = process.env.DISCORD_DM_POLICY || existingDm.policy || 'pairing';
+
+    const dm = {
+        ...existingDm,  // Preserve user settings like custom allowFrom
+        policy: dmPolicy,
+    };
+    if (dmPolicy === 'open' && !existingDm.allowFrom) {
         dm.allowFrom = ['*'];
     }
+
     config.channels.discord = {
+        ...existing,  // Preserve user settings
         token: process.env.DISCORD_BOT_TOKEN,
         enabled: true,
         dm: dm,
@@ -252,8 +271,11 @@ if (process.env.DISCORD_BOT_TOKEN) {
 }
 
 // Slack configuration
+// Merge with existing config to preserve user-added fields
 if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
+    const existing = config.channels.slack || {};
     config.channels.slack = {
+        ...existing,  // Preserve user settings
         botToken: process.env.SLACK_BOT_TOKEN,
         appToken: process.env.SLACK_APP_TOKEN,
         enabled: true,
@@ -261,7 +283,7 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
 }
 
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-console.log('Configuration patched successfully');
+console.log('Configuration patched successfully (merged with existing settings)');
 EOFPATCH
 
 # ============================================================
