@@ -80,8 +80,8 @@
 	"triggers": {
 		"crons": [
 			"25 6 * * *",   // 5 min before 06:30 daily brief
-			"55 10 * * 5",  // 5 min before 11:00 Friday brief
-			"55 19 * * 0"   // 5 min before 20:00 Sunday brief
+			"55 10 * * FRI", // 5 min before 11:00 Friday brief
+			"55 19 * * SUN" // 5 min before 20:00 Sunday brief
 		]
 	},
 	// Note: CF_ACCOUNT_ID should be set via `wrangler secret put CF_ACCOUNT_ID`
