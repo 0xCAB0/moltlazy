@@ -368,7 +368,8 @@ adminApi.get('/diagnostic', async (c) => {
   // 1. Worker env vars
   results.workerEnvKeys = {
     ANTHROPIC_API_KEY: c.env.ANTHROPIC_API_KEY?.substring(0, 10) || 'NOT SET',
-    CLOUDFLARE_AI_GATEWAY_API_KEY: c.env.CLOUDFLARE_AI_GATEWAY_API_KEY?.substring(0, 10) || 'NOT SET',
+    CLOUDFLARE_AI_GATEWAY_API_KEY:
+      c.env.CLOUDFLARE_AI_GATEWAY_API_KEY?.substring(0, 10) || 'NOT SET',
     CF_AI_GATEWAY_MODEL: c.env.CF_AI_GATEWAY_MODEL || 'NOT SET',
     CF_AI_GATEWAY_ACCOUNT_ID: c.env.CF_AI_GATEWAY_ACCOUNT_ID || 'NOT SET',
     CF_AI_GATEWAY_GATEWAY_ID: c.env.CF_AI_GATEWAY_GATEWAY_ID || 'NOT SET',
@@ -451,7 +452,11 @@ adminApi.get('/diagnostic', async (c) => {
   }
 
   // 6. Test AI Gateway URL (if configured)
-  if (c.env.CF_AI_GATEWAY_MODEL && c.env.CF_AI_GATEWAY_ACCOUNT_ID && c.env.CF_AI_GATEWAY_GATEWAY_ID) {
+  if (
+    c.env.CF_AI_GATEWAY_MODEL &&
+    c.env.CF_AI_GATEWAY_ACCOUNT_ID &&
+    c.env.CF_AI_GATEWAY_GATEWAY_ID
+  ) {
     try {
       const raw = c.env.CF_AI_GATEWAY_MODEL;
       const slashIdx = raw.indexOf('/');
