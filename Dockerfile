@@ -10,15 +10,14 @@ RUN ARCH="$(dpkg --print-architecture)" \
          arm64) NODE_ARCH="arm64" ;; \
          *) echo "Unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
        esac \
-    && apt-get update && apt-get install -y xz-utils ca-certificates rclone \
+    && apt-get update && apt-get install -y xz-utils ca-certificates rclone --no-install-recommends \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* \
     && curl -fsSLk https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz -o /tmp/node.tar.xz \
     && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
     && rm /tmp/node.tar.xz \
     && node --version \
     && npm --version
-
-# Install pnpm globally
-RUN npm install -g pnpm
 
 # Install OpenClaw (formerly clawdbot/moltbot)
 # Pin to specific version for reproducible builds
@@ -33,10 +32,12 @@ RUN mkdir -p /root/.openclaw \
 
 # Copy and build moltlazy module (config patching utilities)
 COPY moltlazy/ /app/moltlazy/
-RUN cd /app/moltlazy && npm install && npm run build
+WORKDIR /app/moltlazy
+RUN npm install && npm run build
 
 # Copy startup script
 # Build cache bust: 2026-02-28-v33-moltlazy-extract
+WORKDIR /
 COPY start-openclaw.sh /usr/local/bin/start-openclaw.sh
 RUN chmod +x /usr/local/bin/start-openclaw.sh
 
@@ -48,3 +49,4 @@ WORKDIR /root/clawd
 
 # Expose the gateway port
 EXPOSE 18789
+
