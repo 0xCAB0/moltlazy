@@ -34,6 +34,51 @@ import configErrorHtml from './assets/config-error.html';
 import { handleScheduled } from './scheduled-handler';
 
 /**
+ * Check if a WebSocket close code is sendable per RFC 6455.
+ * Reserved codes (1005, 1006, 1015) and out-of-range codes cannot be sent.
+ */
+function isSendableWsCloseCode(code: number | undefined): boolean {
+  if (code === undefined) return false;
+  // Reserved codes that must not be sent in a close frame
+  if (code === 1005 || code === 1006 || code === 1015) return false;
+  // Valid ranges: 1000-1003, 1007-1014, 3000-4999
+  if (code >= 1000 && code <= 1014 && code !== 1004) return true;
+  if (code >= 3000 && code <= 4999) return true;
+  return false;
+}
+
+/**
+ * Safely close a WebSocket, handling reserved close codes and connection states.
+ */
+function safeCloseWebSocket(
+  ws: WebSocket,
+  code: number | undefined,
+  reason: string | undefined,
+  fallbackCode = 1000,
+): void {
+  if (ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CONNECTING) {
+    return;
+  }
+
+  const safeCode = isSendableWsCloseCode(code) ? code : fallbackCode;
+  // Truncate reason to 123 bytes max per WebSocket spec
+  let safeReason = reason ?? '';
+  if (safeReason.length > 123) {
+    safeReason = safeReason.slice(0, 120) + '...';
+  }
+
+  try {
+    ws.close(safeCode, safeReason);
+  } catch (e) {
+    try {
+      ws.close(fallbackCode);
+    } catch {
+      // Ignore - WebSocket may already be closed
+    }
+  }
+}
+
+/**
  * Transform error messages from the gateway to be more user-friendly.
  */
 function transformErrorMessage(message: string, host: string): string {
@@ -391,33 +436,30 @@ app.all('*', async (c) => {
       if (debugLogs) {
         console.log('[WS] Client closed:', event.code, event.reason);
       }
-      containerWs.close(event.code, event.reason);
+      safeCloseWebSocket(containerWs, event.code, event.reason);
     });
 
     containerWs.addEventListener('close', (event) => {
       if (debugLogs) {
         console.log('[WS] Container closed:', event.code, event.reason);
       }
-      // Transform the close reason (truncate to 123 bytes max for WebSocket spec)
-      let reason = transformErrorMessage(event.reason, url.host);
-      if (reason.length > 123) {
-        reason = reason.slice(0, 120) + '...';
-      }
+      // Transform the close reason
+      const reason = transformErrorMessage(event.reason, url.host);
       if (debugLogs) {
         console.log('[WS] Transformed close reason:', reason);
       }
-      serverWs.close(event.code, reason);
+      safeCloseWebSocket(serverWs, event.code, reason);
     });
 
     // Handle errors
     serverWs.addEventListener('error', (event) => {
       console.error('[WS] Client error:', event);
-      containerWs.close(1011, 'Client error');
+      safeCloseWebSocket(containerWs, 1011, 'Client error');
     });
 
     containerWs.addEventListener('error', (event) => {
       console.error('[WS] Container error:', event);
-      serverWs.close(1011, 'Container error');
+      safeCloseWebSocket(serverWs, 1011, 'Container error');
     });
 
     if (debugLogs) {

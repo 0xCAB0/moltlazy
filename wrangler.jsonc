@@ -79,7 +79,7 @@
 	// Times are UTC - adjust based on your timezone
 	"triggers": {
 		"crons": [
-			"25 6 * * *",   // 5 min before 06:30 daily brief
+			"25 6 * * *", // 5 min before 06:30 daily brief
 			"55 10 * * FRI", // 5 min before 11:00 Friday brief
 			"55 19 * * SUN" // 5 min before 20:00 Sunday brief
 		]
