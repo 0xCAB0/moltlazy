@@ -11,15 +11,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
 
-      - name: Setup Bun
-        run: |
-          curl -fsSL https://bun.sh/install | bash
-          echo "export BUN_INSTALL=\"$HOME/.bun\"" >> "$GITHUB_ENV"
-          echo "export PATH=\"$BUN_INSTALL/bin:$PATH\"" >> "$GITHUB_ENV"
-          source "$GITHUB_ENV"
-
-      - name: Install dependencies
+      - name: Install deps
         run: bun install
 
       - name: Build and Deploy
