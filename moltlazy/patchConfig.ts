@@ -13,85 +13,8 @@
  */
 
 import * as fs from "fs";
+import { DiscordDmConfig, OpenClawConfig } from "./types.js";
 
-interface GatewayAuth {
-  token?: string;
-}
-
-interface ControlUi {
-  allowInsecureAuth?: boolean;
-}
-
-interface GatewayConfig {
-  port?: number;
-  mode?: string;
-  trustedProxies?: string[];
-  auth?: GatewayAuth;
-  controlUi?: ControlUi;
-}
-
-interface ModelEntry {
-  id: string;
-  name: string;
-  contextWindow: number;
-  maxTokens: number;
-}
-
-interface ProviderConfig {
-  baseUrl?: string;
-  apiKey?: string;
-  api?: string;
-  models?: ModelEntry[];
-}
-
-interface ModelsConfig {
-  providers?: Record<string, ProviderConfig>;
-}
-
-interface AgentDefaults {
-  model?: { primary: string };
-}
-
-interface AgentsConfig {
-  defaults?: AgentDefaults;
-}
-
-interface TelegramConfig {
-  botToken?: string;
-  enabled?: boolean;
-  dmPolicy?: string;
-  allowFrom?: string[];
-}
-
-interface DiscordDmConfig {
-  policy?: string;
-  allowFrom?: string[];
-}
-
-interface DiscordConfig {
-  token?: string;
-  enabled?: boolean;
-  dm?: DiscordDmConfig;
-}
-
-interface SlackConfig {
-  botToken?: string;
-  appToken?: string;
-  enabled?: boolean;
-}
-
-interface ChannelsConfig {
-  telegram?: TelegramConfig;
-  discord?: DiscordConfig;
-  slack?: SlackConfig;
-}
-
-interface OpenClawConfig {
-  gateway?: GatewayConfig;
-  channels?: ChannelsConfig;
-  models?: ModelsConfig;
-  agents?: AgentsConfig;
-}
 
 const CONFIG_PATH = "/root/.openclaw/openclaw.json";
 
